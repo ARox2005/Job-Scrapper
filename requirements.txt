@@ -1,0 +1,11 @@
+steamlit
+pandas
+datetime
+requests
+dotenv
+sklearn
+beautifulsoup4
+selenium
+pdfplumber
+pillow
+pytesseract
