@@ -17,77 +17,35 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 all_jobs=pd.read_csv('all_adoobe_jobs.csv')
 
-# def matcher(jobs_skills, resume_text):
-#     if resume_text is None or not jobs_skills:
-#         return 0
+def matcher(jobs_skills, resume_text):
+    if resume_text is None or not jobs_skills:
+        return 0
     
-#     def clean(text):
-#         text = re.sub(r'[^a-zA-Z0-9\s\+\#]', ' ', text.lower())
-#         return " ".join([w for w in text.split() if len(w)>2])
+    def clean(text):
+        text = re.sub(r'[^a-zA-Z0-9\s\+\#]', ' ', text.lower())
+        return " ".join([w for w in text.split() if len(w)>2])
     
-#     resume_clean = clean(resume_text)
-#     job_clean = clean(jobs_skills)
+    resume_clean = clean(resume_text)
+    job_clean = clean(jobs_skills)
     
-#     stop_words = set(text.ENGLISH_STOP_WORDS)
-#     extra_stopwords = {
-#         "experience", "skills", "knowledge", "responsibilities",
-#         "ability", "requirements", "must", "preferred",
-#         "proficient", "understanding", "good", "excellent"
-#     }
-#     custom_stopwords = stop_words.union(extra_stopwords)
-
-#     resume_words = set(resume_clean.split()) - custom_stopwords
-#     job_words = set(job_clean.split())
-
-#     print(job_words)
-
-#     common_keywords = resume_words & job_words
-#     match_percent = round(len(common_keywords) / len(job_words) * 100, 2) if job_words else 0
-
-#     print("\n🧠 Match Score:", match_percent, "%")
-#     return len(common_keywords)
-
-import json
-
-def matcher(resume_text, job_text):
-    prompt = f"""
-    You are a job-matching assistant.
-    Resume:
-    {resume_text}
-
-    Job Skills:
-    {job_text}
-
-    Task:
-    - Give a match percentage (0–100).
-    - List missing skills.
-    - Summarize strengths.
-    Respond in JSON only with this schema:
-        {{
-          "match": <int>,
-          "missing_skills": [<string>],
-          "strengths": [<string>]
-        }}
-    """
-    
-    config = {
-        "responseMimeType" : "application/json"
+    stop_words = set(text.ENGLISH_STOP_WORDS)
+    extra_stopwords = {
+        "experience", "skills", "knowledge", "responsibilities",
+        "ability", "requirements", "must", "preferred",
+        "proficient", "understanding", "good", "excellent"
     }
+    custom_stopwords = stop_words.union(extra_stopwords)
 
-    response = client.models.generate_content(
-        model = "gemini-2.5-flash",
-        contents=prompt,
-        config=config
-    )
+    resume_words = set(resume_clean.split()) - custom_stopwords
+    job_words = set(job_clean.split())
 
-    raw = response.text
+    print(job_words)
 
-    try:
-        result = json.loads(raw)
-        print("\n🧠 Match Score:", result['match'])
-        return result['match']
-    except json.JSONDecodeError:
-        return "Failed, try again"
+    common_keywords = resume_words & job_words
+    match_percent = round(len(common_keywords) / len(job_words) * 100, 2) if job_words else 0
+
+    print("\n🧠 Match Score:", match_percent, "%")
+    return len(common_keywords)
 
 def adobe_scraper(data_df=all_jobs, resume_text=None):
     if not os.path.exists('all_adoobe_jobs.csv') or os.stat('all_adoobe_jobs.csv').st_size == 0:
@@ -165,5 +123,6 @@ def adobe_scraper(data_df=all_jobs, resume_text=None):
         except:
             print(f"Not Found: {html}")
             continue
+
 
     return job_data
