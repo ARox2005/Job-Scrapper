@@ -8,12 +8,8 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction import text
-from google import genai
 
 load_dotenv()
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=GEMINI_API_KEY)
 
 all_jobs=pd.read_csv('all_adoobe_jobs.csv')
 
@@ -126,3 +122,4 @@ def adobe_scraper(data_df=all_jobs, resume_text=None):
 
 
     return job_data
+
