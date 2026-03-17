@@ -1,0 +1,34 @@
+# Environment
+.env
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+temp_resume.pdf
+*.csv
+
+# Sentence Transformers model cache
+.cache/
+
+#old code
+old_files/
+new_msapis.txt
