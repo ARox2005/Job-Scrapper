@@ -78,7 +78,7 @@ if st.button("🔍 Run Scraper", type="primary"):
 
             with st.spinner(f"Scraping {company}..."):
                 result = scrape_company(company, resume_id)
-                # result = scrape_company(company, resume_id).get()
+                # result = scrape_company.apply_async(args=[company, resume_id]).get()
 
             if result["status"] == "ok":
                 st.success(f"✅ **{company}**: {result['new_jobs']} new jobs found!")
