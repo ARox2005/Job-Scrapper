@@ -7,22 +7,13 @@ import JobList from "./components/JobList";
 import MatchResults from "./components/MatchResults";
 import "./App.css";
 
-function getSessionId() {
-  let id = sessionStorage.getItem("session_id");
-  if (!id) {
-    id = crypto.randomUUID();
-    sessionStorage.setItem("session_id", id);
-  }
-  return id;
-}
-
 function App() {
   // ── State ────────────────────────────────────────────
-  const [sessionId] = useState(getSessionId);
   const [resumeId, setResumeId] = useState(null);
   const [resumeName, setResumeName] = useState("");
   const [companies, setCompanies] = useState([]);
   const [selectedCompanies, setSelectedCompanies] = useState([]);
+  const [scrapedCompanies, setScrapedCompanies] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,29 +25,26 @@ function App() {
   }, []);
 
   // ── Load results whenever resumeId changes ───────────
-  // useEffect(() => {
-  //   if (resumeId) {
-  //     getResults(resumeId).then(setMatches);
-  //   } else {
-  //     getJobs().then(setJobs);
-  //   }
-  // }, [resumeId]);
-
   useEffect(() => {
-    if (resumeId) {
+    if (resumeId && scrapedCompanies.length > 0) {
       getResults(resumeId).then(setMatches);
-    } else {
-      setJobs([]);
     }
   }, [resumeId]);
 
   // ── After scraping completes, refresh results ────────
   function handleScrapeComplete(messages) {
     setScrapeMessages(messages);
+    // Track which companies were successfully scraped
+    const successCompanies = messages
+      .filter((m) => m.status === "ok")
+      .map((m) => m.company);
+    const allScraped = [...new Set([...scrapedCompanies, ...successCompanies])];
+    setScrapedCompanies(allScraped);
+
     if (resumeId) {
       getResults(resumeId).then(setMatches);
     } else {
-      getJobs(sessionId).then(setJobs);
+      getJobs(allScraped).then(setJobs);
     }
   }
 
@@ -91,7 +79,6 @@ function App() {
       <ScrapeButton
         selectedCompanies={selectedCompanies}
         resumeId={resumeId}
-        sessionId={sessionId}
         loading={loading}
         setLoading={setLoading}
         onComplete={handleScrapeComplete}

@@ -9,7 +9,7 @@ class Job(SQLModel, table=True):
     """A scraped job posting from any company."""
 
     __table_args__ = (
-        UniqueConstraint("company", "external_job_id", "session_id", name="uq_company_job_session"),
+        UniqueConstraint("company", "external_job_id", name="uq_company_job"),
         {"extend_existing": True}
     )
 
@@ -23,7 +23,6 @@ class Job(SQLModel, table=True):
     qualifications: Optional[str] = Field(default=None, sa_column=Column(Text))
     raw_data: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    session_id: Optional[str] = Field(default=None, index=True)
 
 class Resume(SQLModel, table=True):
     """An uploaded resume."""

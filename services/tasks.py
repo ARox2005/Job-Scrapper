@@ -12,7 +12,7 @@ SCRAPERS = {
 }
 
 @app.task(name="scrape_company")
-def scrape_company(company_name: str, resume_id: int | None=None, session_id: str | None=None):
+def scrape_company(company_name: str, resume_id: int | None=None):
     """
     Scrape jobs for a company, save to DB, then match against the resume.
     """
@@ -46,11 +46,9 @@ def scrape_company(company_name: str, resume_id: int | None=None, session_id: st
                 select(Job).where(
                     Job.company == job.company,
                     Job.external_job_id == job.external_job_id,
-                    Job.session_id == session_id,
                 )
             ).first()
             if not existing:
-                job.session_id = session_id
                 session.add(job)
                 session.flush()          # assigns job.id without committing
                 saved_ids.append(job.id)
@@ -58,8 +56,7 @@ def scrape_company(company_name: str, resume_id: int | None=None, session_id: st
 
     # Match new jobs against the resume (only if resume provided)
     if resume_id and saved_ids:
-        match_jobs.delay(resume_id, saved_ids)
-        # match_jobs(resume_id, saved_ids)
+        match_jobs(resume_id, saved_ids)
     return {"status": "ok", "new_jobs": saved_count}
 
 @app.task(name="match_jobs")

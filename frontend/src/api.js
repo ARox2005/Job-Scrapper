@@ -22,36 +22,23 @@ export async function getCompanies() {
 }
 
 // ── Scrape ───────────────────────────────────────────────
-// export async function scrapeJobs(companies, resumeId = null) {
-//     const { data } = await API.post("/api/scrape", {
-//         companies,
-//         resume_id: resumeId,
-//     });
-//     return data; // [{ company, status, new_jobs, message }]
-// }
-
-export async function scrapeJobs(companies, resumeId = null, sessionId = null) {
+export async function scrapeJobs(companies, resumeId = null) {
     const { data } = await API.post("/api/scrape", {
         companies,
         resume_id: resumeId,
-        session_id: sessionId,
     });
-    return data;
+    return data; // [{ company, status, new_jobs, message }]
 }
 
 // ── Jobs (no resume) ─────────────────────────────────────
-// export async function getJobs() {
-//     const { data } = await API.get("/api/jobs");
-//     return data; // [{ id, company, title, url, date_posted }]
-// }
-
-export async function getJobs(sessionId) {
-    const { data } = await API.get(`/api/jobs?session_id=${sessionId}`);
-    return data;
+export async function getJobs(companies) {
+    const param = companies.join(",");
+    const { data } = await API.get(`/api/jobs?companies=${param}`);
+    return data; // [{ id, company, title, url, date_posted }]
 }
 
 // ── Match Results ────────────────────────────────────────
 export async function getResults(resumeId) {
     const { data } = await API.get(`/api/results/${resumeId}`);
-    return data; // [{ job_id, title, company, url, date_posted, semantic_score, keyword_score, hybrid_score, matched_keywords }]
+    return data;
 }
