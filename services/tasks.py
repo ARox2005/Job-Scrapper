@@ -46,6 +46,7 @@ def scrape_company(company_name: str, resume_id: int | None=None, session_id: st
                 select(Job).where(
                     Job.company == job.company,
                     Job.external_job_id == job.external_job_id,
+                    Job.session_id == session_id,
                 )
             ).first()
             if not existing:
