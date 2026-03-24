@@ -23,6 +23,7 @@ class Job(SQLModel, table=True):
     qualifications: Optional[str] = Field(default=None, sa_column=Column(Text))
     raw_data: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    session_id: Optional[str] = Field(default=None, index=True)
 
 class Resume(SQLModel, table=True):
     """An uploaded resume."""

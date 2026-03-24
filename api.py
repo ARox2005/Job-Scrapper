@@ -36,6 +36,7 @@ def on_startup():
 class ScrapeRequest(BaseModel):
     companies: list[str]
     resume_id: int | None = None
+    session_id: str | None = None
 
 class ScrapeResult(BaseModel):
     company: str
@@ -123,7 +124,8 @@ def scrape(request: ScrapeRequest):
             continue
 
         # Run scraping synchronously
-        result = scrape_company(company, request.resume_id)
+        # result = scrape_company(company, request.resume_id)
+        result = scrape_company(company, request.resume_id, request.session_id)
         # Run matching synchronously (if resume provided and new jobs found)
         if request.resume_id and result.get("new_jobs", 0) > 0:
             # Get all job IDs for this company that don't have a match yet
@@ -148,16 +150,36 @@ def scrape(request: ScrapeRequest):
         ))
     return results
 
+# @app.get("/api/jobs", response_model=list[JobOut])
+# def get_jobs():
+#     """Return all recent jobs sorted by date (no resume mode)."""
+#     cutoff = datetime.utcnow() - timedelta(days=config.JOB_RETENTION_DAYS)
+#     with get_session() as session:
+#         jobs = session.exec(
+#             select(Job)
+#             .where(Job.date_posted >= cutoff)
+#             .order_by(Job.date_posted.desc())
+#         ).all()
+#     return [
+#         JobOut(
+#             id=job.id,
+#             company=job.company,
+#             title=job.title,
+#             url=job.url,
+#             date_posted=job.date_posted,
+#         )
+#         for job in jobs
+#     ]
+
 @app.get("/api/jobs", response_model=list[JobOut])
-def get_jobs():
+def get_jobs(session_id: str | None = None):
     """Return all recent jobs sorted by date (no resume mode)."""
     cutoff = datetime.utcnow() - timedelta(days=config.JOB_RETENTION_DAYS)
     with get_session() as session:
-        jobs = session.exec(
-            select(Job)
-            .where(Job.date_posted >= cutoff)
-            .order_by(Job.date_posted.desc())
-        ).all()
+        query = select(Job).where(Job.date_posted >= cutoff)
+        if session_id:
+            query = query.where(Job.session_id == session_id)
+        jobs = session.exec(query.order_by(Job.date_posted.desc())).all()
     return [
         JobOut(
             id=job.id,

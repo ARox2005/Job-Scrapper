@@ -1,3 +1,12 @@
+---
+title: Job Scrapper API
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # Job-Scrapper
 
 A resume-matched job aggregation tool that scrapes job postings from major tech companies and ranks them by relevance to your resume using **semantic similarity (MiniLM)** and **keyword matching**.

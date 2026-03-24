@@ -12,7 +12,7 @@ SCRAPERS = {
 }
 
 @app.task(name="scrape_company")
-def scrape_company(company_name: str, resume_id: int | None=None):
+def scrape_company(company_name: str, resume_id: int | None=None, session_id: str | None=None):
     """
     Scrape jobs for a company, save to DB, then match against the resume.
     """
@@ -49,6 +49,7 @@ def scrape_company(company_name: str, resume_id: int | None=None):
                 )
             ).first()
             if not existing:
+                job.session_id = session_id
                 session.add(job)
                 session.flush()          # assigns job.id without committing
                 saved_ids.append(job.id)

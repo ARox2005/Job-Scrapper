@@ -7,8 +7,18 @@ import JobList from "./components/JobList";
 import MatchResults from "./components/MatchResults";
 import "./App.css";
 
+function getSessionId() {
+  let id = sessionStorage.getItem("session_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem("session_id", id);
+  }
+  return id;
+}
+
 function App() {
   // ── State ────────────────────────────────────────────
+  const [sessionId] = useState(getSessionId);
   const [resumeId, setResumeId] = useState(null);
   const [resumeName, setResumeName] = useState("");
   const [companies, setCompanies] = useState([]);
@@ -24,11 +34,19 @@ function App() {
   }, []);
 
   // ── Load results whenever resumeId changes ───────────
+  // useEffect(() => {
+  //   if (resumeId) {
+  //     getResults(resumeId).then(setMatches);
+  //   } else {
+  //     getJobs().then(setJobs);
+  //   }
+  // }, [resumeId]);
+
   useEffect(() => {
     if (resumeId) {
       getResults(resumeId).then(setMatches);
     } else {
-      getJobs().then(setJobs);
+      setJobs([]);
     }
   }, [resumeId]);
 
@@ -38,7 +56,7 @@ function App() {
     if (resumeId) {
       getResults(resumeId).then(setMatches);
     } else {
-      getJobs().then(setJobs);
+      getJobs(sessionId).then(setJobs);
     }
   }
 
@@ -73,6 +91,7 @@ function App() {
       <ScrapeButton
         selectedCompanies={selectedCompanies}
         resumeId={resumeId}
+        sessionId={sessionId}
         loading={loading}
         setLoading={setLoading}
         onComplete={handleScrapeComplete}
