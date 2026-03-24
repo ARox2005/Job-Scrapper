@@ -126,7 +126,8 @@ def scrape(request: ScrapeRequest):
         # Run scraping synchronously
         result = scrape_company(company, request.resume_id)
         # Run matching synchronously (if resume provided and new jobs found)
-        if request.resume_id and result.get("new_jobs", 0) > 0:
+        # if request.resume_id and result.get("new_jobs", 0) > 0:
+        if request.resume_id:
             # Get all job IDs for this company that don't have a match yet
             with get_session() as session:
                 unmatched_jobs = session.exec(
