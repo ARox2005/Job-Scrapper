@@ -9,7 +9,7 @@ class Job(SQLModel, table=True):
     """A scraped job posting from any company."""
 
     __table_args__ = (
-        UniqueConstraint("company", "external_job_id", name="uq_company_job"),
+        UniqueConstraint("company", "external_job_id", "session_id", name="uq_company_job_session"),
         {"extend_existing": True}
     )
 
