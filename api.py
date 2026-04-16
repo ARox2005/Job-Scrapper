@@ -44,11 +44,32 @@ class ScrapeResult(BaseModel):
     new_jobs: int = 0
     message: str = ""
 
+# class JobOut(BaseModel):
+#     id: int
+#     company: str
+#     title: str
+#     url: str
+#     date_posted: datetime
+
+# class MatchOut(BaseModel):
+#     job_id: int
+#     title: str
+#     company: str
+#     url: str
+#     date_posted: datetime
+#     semantic_score: float
+#     keyword_score: float
+#     hybrid_score: float
+#     matched_keywords: list[str] | None = None
+
 class JobOut(BaseModel):
     id: int
     company: str
     title: str
     url: str
+    location: str | None = None
+    min_experience: int | None = None
+    education_levels: list[str] | None = None
     date_posted: datetime
 
 class MatchOut(BaseModel):
@@ -56,11 +77,16 @@ class MatchOut(BaseModel):
     title: str
     company: str
     url: str
+    location: str | None = None
+    min_experience: int | None = None
+    education_levels: list[str] | None = None
     date_posted: datetime
-    semantic_score: float
-    keyword_score: float
-    hybrid_score: float
-    matched_keywords: list[str] | None = None
+    overall_score: float
+    skills_score: float
+    experience_score: float
+    reasoning: str | None = None
+    matched_skills: list[str] | None = None
+    missing_skills: list[str] | None = None
 
 # ── Endpoints ─────────────────────────────────────────────
 @app.get("/api/companies")
@@ -167,31 +193,105 @@ def get_jobs(companies: Optional[str] = Query(None)):
             title=job.title,
             url=job.url,
             date_posted=job.date_posted,
+            location=job.location,
+            min_experience=job.min_experience,
+            education_levels=job.education_levels,
         )
         for job in jobs
     ]
 
+# @app.get("/api/results/{resume_id}", response_model=list[MatchOut])
+# def get_results(resume_id: int):
+#     """Return match results for a resume, sorted by hybrid score."""
+#     with get_session() as session:
+#         rows = session.exec(
+#             select(MatchResult, Job)
+#             .join(Job, MatchResult.job_id == Job.id)
+#             .where(MatchResult.resume_id == resume_id)
+#             .order_by(MatchResult.hybrid_score.desc())
+#         ).all()
+#     return [
+#         MatchOut(
+#             job_id=job.id,
+#             title=job.title,
+#             company=job.company,
+#             url=job.url,
+#             date_posted=job.date_posted,
+#             semantic_score=match.semantic_score,
+#             keyword_score=match.keyword_score,
+#             hybrid_score=match.hybrid_score,
+#             matched_keywords=match.matched_keywords,
+#         )
+#         for match, job in rows
+#     ]
+
 @app.get("/api/results/{resume_id}", response_model=list[MatchOut])
-def get_results(resume_id: int):
-    """Return match results for a resume, sorted by hybrid score."""
+def get_results(
+    resume_id: int,
+    locations: Optional[str] = Query(None),
+    min_exp: Optional[int] = Query(None),
+    max_exp: Optional[int] = Query(None),
+    education: Optional[str] = Query(None),
+):
     with get_session() as session:
         rows = session.exec(
             select(MatchResult, Job)
             .join(Job, MatchResult.job_id == Job.id)
             .where(MatchResult.resume_id == resume_id)
-            .order_by(MatchResult.hybrid_score.desc())
+            .order_by(MatchResult.overall_score.desc())
         ).all()
-    return [
-        MatchOut(
-            job_id=job.id,
-            title=job.title,
-            company=job.company,
-            url=job.url,
-            date_posted=job.date_posted,
-            semantic_score=match.semantic_score,
-            keyword_score=match.keyword_score,
-            hybrid_score=match.hybrid_score,
-            matched_keywords=match.matched_keywords,
+
+    location_set = {x.strip() for x in locations.split(",") if x.strip()} if locations else None
+    results = []
+
+    for match, job in rows:
+        if location_set and job.location not in location_set:
+            continue
+        if education and education not in (job.education_levels or []):
+            continue
+        if min_exp is not None and job.min_experience is not None and job.min_experience < min_exp:
+            continue
+        if max_exp is not None and job.min_experience is not None and job.min_experience > max_exp:
+            continue
+
+        results.append(
+            MatchOut(
+                job_id=job.id,
+                title=job.title,
+                company=job.company,
+                url=job.url,
+                location=job.location,
+                min_experience=job.min_experience,
+                education_levels=job.education_levels,
+                date_posted=job.date_posted,
+                overall_score=match.overall_score,
+                skills_score=match.skills_score,
+                experience_score=match.experience_score,
+                reasoning=match.reasoning,
+                matched_skills=match.matched_skills,
+                missing_skills=match.missing_skills,
+            )
         )
-        for match, job in rows
-    ]
+
+    return results
+
+@app.get("/api/filters")
+def get_filters(companies: Optional[str] = Query(None)):
+    cutoff = datetime.utcnow() - timedelta(days=config.JOB_RETENTION_DAYS)
+
+    with get_session() as session:
+        query = select(Job).where(Job.date_posted >= cutoff)
+        if companies:
+            company_list = [c.strip() for c in companies.split(",") if c.strip()]
+            query = query.where(Job.company.in_(company_list))
+        jobs = session.exec(query).all()
+
+    locations = sorted({job.location for job in jobs if job.location})
+    education_levels = sorted({level for job in jobs for level in (job.education_levels or [])})
+    exp_values = [job.min_experience for job in jobs if job.min_experience is not None]
+
+    return {
+        "locations": locations,
+        "experience_range": [min(exp_values), max(exp_values)] if exp_values else [0, 0],
+        "education_levels": education_levels,
+    }

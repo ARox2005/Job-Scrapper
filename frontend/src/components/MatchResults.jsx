@@ -24,54 +24,66 @@ function MatchResults({ matches }) {
                                 {m.company} · {new Date(m.date_posted).toLocaleDateString()}
                             </span>
                         </div>
-                        <span className="match-score-badge">{m.hybrid_score.toFixed(1)}%</span>
+                        <span className="match-score-badge">{m.overall_score.toFixed(1)}%</span>
+                    </div>
+
+                    <div className="meta-tags">
+                        {m.location && <span className="meta-tag">{m.location}</span>}
+                        {m.min_experience != null && (
+                            <span className="meta-tag">{m.min_experience}+ years</span>
+                        )}
+                        {m.education_levels?.length > 0 && (
+                            <span className="meta-tag">{m.education_levels.join(", ").toUpperCase()}</span>
+                        )}
                     </div>
 
                     <div className="score-bars">
                         <div className="score-bar">
                             <div className="label">
                                 <span>Semantic</span>
-                                <span>{m.semantic_score.toFixed(1)}%</span>
+                                <span>{m.skills_score.toFixed(1)}%</span>
                             </div>
                             <div className="track">
                                 <div
                                     className="fill semantic"
-                                    style={{ width: `${m.semantic_score}%` }}
+                                    style={{ width: `${m.skills_score}%` }}
                                 />
                             </div>
                         </div>
 
                         <div className="score-bar">
                             <div className="label">
-                                <span>Keyword</span>
-                                <span>{m.keyword_score.toFixed(1)}%</span>
+                                <span>Experience</span>
+                                <span>{m.experience_score.toFixed(1)}%</span>
                             </div>
                             <div className="track">
                                 <div
                                     className="fill keyword"
-                                    style={{ width: `${m.keyword_score}%` }}
+                                    style={{ width: `${m.experience_score}%` }}
                                 />
                             </div>
                         </div>
 
                         <div className="score-bar">
                             <div className="label">
-                                <span>Hybrid</span>
-                                <span>{m.hybrid_score.toFixed(1)}%</span>
+                                <span>Overall</span>
+                                <span>{m.overall_score.toFixed(1)}%</span>
                             </div>
                             <div className="track">
                                 <div
                                     className="fill hybrid"
-                                    style={{ width: `${m.hybrid_score}%` }}
+                                    style={{ width: `${m.overall_score}%` }}
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {m.matched_keywords && m.matched_keywords.length > 0 && (
+                    {m.reasoning && <p className="match-reasoning">{m.reasoning}</p>}
+
+                    {m.matched_skills && m.matched_skills.length > 0 && (
                         <div className="keywords">
-                            {m.matched_keywords.map((kw, i) => (
-                                <span key={i} className="keyword-tag">{kw}</span>
+                            {m.matched_skills.map((skill, i) => (
+                                <span key={i} className="keyword-tag">{skill}</span>
                             ))}
                         </div>
                     )}

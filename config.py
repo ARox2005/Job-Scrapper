@@ -26,3 +26,11 @@ JOB_RETENTION_DAYS = 7
 # Celery -------------------------------------------------------------------------
 CELERY_BROKER_URL = REDIS
 CELERY_RESULT_BACKEND = REDIS
+
+# LLM ---------------------------------------------------------------------------
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct")
+LLM_ENDPOINT = os.getenv(
+    "LLM_ENDPOINT",
+    "https://integrate.api.nvidia.com/v1/chat/completions"
+)

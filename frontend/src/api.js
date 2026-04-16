@@ -38,7 +38,26 @@ export async function getJobs(companies) {
 }
 
 // ── Match Results ────────────────────────────────────────
-export async function getResults(resumeId) {
-    const { data } = await API.get(`/api/results/${resumeId}`);
+// export async function getResults(resumeId) {
+//     const { data } = await API.get(`/api/results/${resumeId}`);
+//     return data;
+// }
+
+export async function getResults(resumeId, filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.locations?.length) params.set("locations", filters.locations.join(","));
+    if (filters.education) params.set("education", filters.education);
+    if (filters.minExp != null) params.set("min_exp", filters.minExp);
+    if (filters.maxExp != null) params.set("max_exp", filters.maxExp);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const { data } = await API.get(`/api/results/${resumeId}${query}`);
+    return data;
+}
+
+export async function getFilters(companies) {
+    const params = new URLSearchParams();
+    if (companies?.length) params.set("companies", companies.join(","));
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const { data } = await API.get(`/api/filters${query}`);
     return data;
 }

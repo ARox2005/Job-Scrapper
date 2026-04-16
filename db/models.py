@@ -23,6 +23,10 @@ class Job(SQLModel, table=True):
     qualifications: Optional[str] = Field(default=None, sa_column=Column(Text))
     raw_data: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    location: Optional[str] = Field(default=None, index=True)
+    min_experience: Optional[int] = Field(default=None)
+    max_experience: Optional[int] = Field(default=None)
+    education_levels: Optional[list] = Field(default=None, sa_column=Column(JSONB))
 
 class Resume(SQLModel, table=True):
     """An uploaded resume."""
@@ -39,8 +43,10 @@ class MatchResult(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     job_id: int = Field(foreign_key="job.id")
     resume_id: int = Field(foreign_key="resume.id")
-    semantic_score: float
-    keyword_score: float
-    hybrid_score: float = Field(index=True)
-    matched_keywords: Optional[list] = Field(default=None, sa_column=Column(JSONB))
+    overall_score: float = Field(index=True)
+    skills_score: float
+    experience_score: float
+    reasoning: Optional[str] = Field(default=None, sa_column=Column(Text))
+    matched_skills: Optional[list] = Field(default=None, sa_column=Column(JSONB))
+    missing_skills: Optional[list] = Field(default=None, sa_column=Column(JSONB))
     matched_at: datetime = Field(default_factory=datetime.utcnow)

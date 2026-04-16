@@ -6,6 +6,8 @@ from scrapers.microsoft import MicrosoftScraper
 from sqlmodel import select
 from datetime import datetime
 
+from services.extractor import extract_job_metadata
+
 # Registry of available scrapers
 SCRAPERS = {
     "Microsoft": MicrosoftScraper,
@@ -54,6 +56,18 @@ def scrape_company(company_name: str, resume_id: int | None=None):
                 saved_ids.append(job.id)
                 saved_count += 1
 
+    # Extract metadata for new jobs (location, education, experience)
+    for job_id in saved_ids:
+        with get_session() as session:
+            job = session.get(Job, job_id)
+            if job:
+                metadata = extract_job_metadata(job)
+                job.location = metadata.get("location")
+                job.min_experience = metadata.get("min_experience")
+                job.max_experience = metadata.get("max_experience")
+                job.education_levels = metadata.get("education_levels", [])
+                session.add(job)
+
     # Match new jobs against the resume (only if resume provided)
     if resume_id and saved_ids:
         match_jobs(resume_id, saved_ids)
@@ -77,15 +91,20 @@ def match_jobs(resume_id: int, job_ids: list[int]):
             job_text = job.qualifications or job.description or ""
             if not job_text:
                 continue
+            
             result = compute_match(resume.extracted_text, job_text)
+
             match_result = MatchResult(
                 job_id=job.id,
                 resume_id=resume.id,
-                semantic_score=result.semantic_score,
-                keyword_score=result.keyword_score,
-                hybrid_score=result.hybrid_score,
-                matched_keywords=result.matched_keywords,
+                overall_score=result.overall_score,
+                skills_score=result.skills_score,
+                experience_score=result.experience_score,
+                reasoning=result.reasoning,
+                matched_skills=result.matched_skills,
+                missing_skills=result.missing_skills,
                 matched_at=datetime.utcnow(),
             )
+
             session.add(match_result)
     return {"status": "ok", "matched": len(job_ids)}
