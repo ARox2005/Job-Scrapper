@@ -538,6 +538,32 @@ body {
   top: 1.5rem;
 }
 
+.filter-section h3 {
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+  color: var(--text-secondary);
+}
+
+.filter-range button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-range button:hover {
+  border-color: var(--accent);
+}
+
+.filter-range button.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent-light);
+}
+
 .main-content {
   flex: 1;
   min-width: 0;

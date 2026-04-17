@@ -79,6 +79,42 @@ function App() {
     );
   }
 
+  function jobMatchesFilters(job) {
+    if (
+      selectedFilters.locations.length > 0 &&
+      !selectedFilters.locations.includes(job.location)
+    ) {
+      return false;
+    }
+
+    if (
+      selectedFilters.education &&
+      !(job.education_levels || []).includes(selectedFilters.education)
+    ) {
+      return false;
+    }
+
+    if (
+      selectedFilters.minExp != null &&
+      job.min_experience != null &&
+      job.min_experience < selectedFilters.minExp
+    ) {
+      return false;
+    }
+
+    if (
+      selectedFilters.maxExp != null &&
+      job.min_experience != null &&
+      job.min_experience > selectedFilters.maxExp
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  const filteredJobs = jobs.filter(jobMatchesFilters);
+
   // ── Render ───────────────────────────────────────────
   // return (
   //   <div className="app">
@@ -183,7 +219,7 @@ function App() {
         </div>
       )}
 
-      <div className="app-layout">
+      {/* <div className="app-layout">
         {resumeId && scrapedCompanies.length > 0 && (
           <aside className="sidebar">
             <FilterSidebar
@@ -196,6 +232,26 @@ function App() {
 
         <main className="main-content">
           {resumeId ? <MatchResults matches={matches} /> : <JobList jobs={jobs} />}
+        </main>
+      </div> */}
+
+      <div className="app-layout">
+        {scrapedCompanies.length > 0 && (
+          <aside className="sidebar">
+            <FilterSidebar
+              filters={filters}
+              selected={selectedFilters}
+              onChange={setSelectedFilters}
+            />
+          </aside>
+        )}
+
+        <main className="main-content">
+          {resumeId ? (
+            <MatchResults matches={matches} />
+          ) : (
+            <JobList jobs={filteredJobs} />
+          )}
         </main>
       </div>
     </div>
