@@ -2,6 +2,7 @@ import time
 import json
 import requests
 import config
+import re
 
 _last_call_time = 0
 
@@ -37,9 +38,34 @@ def call_llm(prompt: str, system_prompt: str = "") -> str:
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
 
-def call_llm_json(prompt: str, system_prompt: str="") -> dict:
+# def call_llm_json(prompt: str, system_prompt: str="") -> dict:
+#     """Call LLM and parse the response as JSON."""
+#     text = call_llm(prompt, system_prompt)
+#     # Strip markdown code fences if LLM wraps response in ```json ... ```
+#     # text = text.strip().removeprefix("```json").removesuffix("```").strip()
+#     text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+#     return json.loads(text)
+
+def call_llm_json(prompt: str, system_prompt: str = "") -> dict:
     """Call LLM and parse the response as JSON."""
     text = call_llm(prompt, system_prompt)
-    # Strip markdown code fences if LLM wraps response in ```json ... ```
-    text = text.strip().removeprefix("```json").removesuffix("```").strip()
-    return json.loads(text)
+    # print("RAW LLM RESPONSE:", repr(text))
+
+    cleaned = (
+        text.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
+
+    if not cleaned:
+        raise ValueError("LLM returned empty content.")
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+        raise

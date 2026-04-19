@@ -4,8 +4,10 @@ from db.sessions import get_session, init_db
 from matcher import compute_match
 from scrapers.microsoft import MicrosoftScraper
 from sqlmodel import select
-from datetime import datetime
+from sqlalchemy import delete
+from datetime import datetime, timedelta
 
+import config
 from services.extractor import extract_job_metadata
 
 # Registry of available scrapers
@@ -73,15 +75,23 @@ def scrape_company(company_name: str, resume_id: int | None=None):
         match_jobs(resume_id, saved_ids)
     return {"status": "ok", "new_jobs": saved_count}
 
+def refresh_company_data(company_name: str):
+    """
+    Refresh a company's jobs in the DB without doing resume matching.
+    This is what the manual refresh button and scheduler will use.
+    """
+    return scrape_company(company_name, None)
+
 @app.task(name="match_jobs")
 def match_jobs(resume_id: int, job_ids: list[int]):
     """
-    Run the hybrid matcher on each job against the resume.
+    Match a resume against a specific list of job ids.
     """
     with get_session() as session:
         resume = session.get(Resume, resume_id)
         if not resume:
             return {"status": "error", "message": "Resume not found"}
+
         for job_id in job_ids:
             job = session.get(Job, job_id)
             if not job:
@@ -108,3 +118,37 @@ def match_jobs(resume_id: int, job_ids: list[int]):
 
             session.add(match_result)
     return {"status": "ok", "matched": len(job_ids)}
+
+@app.task(name="match_existing_jobs")
+def match_existing_jobs(resume_id: int, companies: list[str] | None = None):
+    """
+    Match a resume against existing DB jobs only. No scraping.
+    Only creates matches for jobs that do not already have a MatchResult
+    for this resume.
+    """
+    cutoff = datetime.utcnow() - timedelta(days=config.JOB_RETENTION_DAYS)
+
+    with get_session() as session:
+        resume = session.get(Resume, resume_id)
+        if not resume:
+            return {"status": "error", "message": "Resume not found"}
+
+        query = (
+            select(Job.id)
+            .where(Job.date_posted >= cutoff)
+            .where(
+                ~Job.id.in_(
+                    select(MatchResult.job_id).where(MatchResult.resume_id == resume_id)
+                )
+            )
+        )
+
+        if companies:
+            query = query.where(Job.company.in_(companies))
+
+        job_ids = list(session.exec(query).all())
+
+    if not job_ids:
+        return {"status": "ok", "matched": 0}
+
+    return match_jobs(resume_id, job_ids)

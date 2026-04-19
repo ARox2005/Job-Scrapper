@@ -22,6 +22,16 @@ export async function getCompanies() {
 }
 
 // ── Scrape ───────────────────────────────────────────────
+export async function refreshJobs(companies) {
+    const { data } = await API.post("/api/refresh", { companies });
+    return data;
+}
+
+export async function matchResume(resumeId, companies) {
+    const { data } = await API.post(`/api/resume/${resumeId}/match`, { companies });
+    return data;
+}
+
 export async function scrapeJobs(companies, resumeId = null) {
     const { data } = await API.post("/api/scrape", {
         companies,
@@ -43,12 +53,15 @@ export async function getJobs(companies) {
 //     return data;
 // }
 
-export async function getResults(resumeId, filters = {}) {
+export async function getResults(resumeId, filters = {}, companies = []) {
     const params = new URLSearchParams();
+
+    if (companies?.length) params.set("companies", companies.join(","));
     if (filters.locations?.length) params.set("locations", filters.locations.join(","));
     if (filters.education) params.set("education", filters.education);
     if (filters.minExp != null) params.set("min_exp", filters.minExp);
     if (filters.maxExp != null) params.set("max_exp", filters.maxExp);
+
     const query = params.toString() ? `?${params.toString()}` : "";
     const { data } = await API.get(`/api/results/${resumeId}${query}`);
     return data;

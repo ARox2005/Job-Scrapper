@@ -10,7 +10,8 @@ from sqlmodel import select
 
 from db.sessions import get_session, init_db
 from db.models import Job, Resume, MatchResult
-from services.tasks import scrape_company, match_jobs
+from services.tasks import scrape_company, match_jobs, match_existing_jobs, refresh_company_data
+from services.scheduler import start_scheduler, stop_scheduler
 from utils import extract_text_from_pdf
 import config
 
@@ -32,6 +33,11 @@ ALL_COMPANIES = ["Microsoft", "IBM", "Oracle", "Adobe"]
 @app.on_event("startup")
 def on_startup():
     init_db()
+    start_scheduler()
+
+@app.on_event("shutdown")
+def on_shutdown():
+    stop_scheduler()
 
 # ── Request / Response Schemas ────────────────────────────
 class ScrapeRequest(BaseModel):
@@ -43,6 +49,9 @@ class ScrapeResult(BaseModel):
     status: str
     new_jobs: int = 0
     message: str = ""
+
+class CompanyListRequest(BaseModel):
+    companies: list[str]
 
 # class JobOut(BaseModel):
 #     id: int
@@ -134,6 +143,41 @@ def upload_resume(file: UploadFile = File(...)):
         resume_id = resume.id
 
     return {"resume_id": resume_id, "filename": file.filename, "is_new": True}
+
+@app.post("/api/refresh", response_model=list[ScrapeResult])
+def refresh_jobs(request: CompanyListRequest):
+    """
+    Manually refresh selected companies by scraping the source sites and
+    updating the DB. No resume matching happens here.
+    """
+    results = []
+
+    for company in request.companies:
+        if company not in AVAILABLE_SCRAPERS:
+            results.append(ScrapeResult(
+                company=company,
+                status="coming_soon",
+                message=f"{company} scraper coming soon!",
+            ))
+            continue
+
+        result = refresh_company_data(company)
+
+        results.append(ScrapeResult(
+            company=company,
+            status=result.get("status", "error"),
+            new_jobs=result.get("new_jobs", 0),
+            message=result.get("message", ""),
+        ))
+
+    return results
+
+@app.post("/api/resume/{resume_id}/match")
+def match_resume_to_db_jobs(resume_id: int, request: CompanyListRequest):
+    """
+    Match a resume against jobs already stored in the DB. No scraping.
+    """
+    return match_existing_jobs(resume_id, request.companies)
 
 @app.post("/api/scrape", response_model=list[ScrapeResult])
 def scrape(request: ScrapeRequest):
@@ -228,18 +272,28 @@ def get_jobs(companies: Optional[str] = Query(None)):
 @app.get("/api/results/{resume_id}", response_model=list[MatchOut])
 def get_results(
     resume_id: int,
+    companies: Optional[str] = Query(None),
     locations: Optional[str] = Query(None),
     min_exp: Optional[int] = Query(None),
     max_exp: Optional[int] = Query(None),
     education: Optional[str] = Query(None),
 ):
+    cutoff = datetime.utcnow() - timedelta(days=config.JOB_RETENTION_DAYS)
+
     with get_session() as session:
-        rows = session.exec(
+        query = (
             select(MatchResult, Job)
             .join(Job, MatchResult.job_id == Job.id)
             .where(MatchResult.resume_id == resume_id)
+            .where(Job.date_posted >= cutoff)
             .order_by(MatchResult.overall_score.desc())
-        ).all()
+        )
+
+        if companies:
+            company_list = [c.strip() for c in companies.split(",") if c.strip()]
+            query = query.where(Job.company.in_(company_list))
+
+        rows = session.exec(query).all()
 
     location_set = {x.strip() for x in locations.split(",") if x.strip()} if locations else None
     results = []

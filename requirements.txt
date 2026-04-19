@@ -18,3 +18,4 @@ numpy
 fastapi
 uvicorn
 python-multipart
+APScheduler

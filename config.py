@@ -34,3 +34,8 @@ LLM_ENDPOINT = os.getenv(
     "LLM_ENDPOINT",
     "https://integrate.api.nvidia.com/v1/chat/completions"
 )
+
+# Scheduler ---------------------------------------------------------------------
+SCHEDULE_REFRESH_ENABLED = os.getenv("SCHEDULE_REFRESH_ENABLED", "true").lower() == "true"
+SCHEDULE_REFRESH_HOURS_UTC = os.getenv("SCHEDULE_REFRESH_HOURS_UTC", "2,14")
+SCHEDULE_REFRESH_COMPANIES = os.getenv("SCHEDULE_REFRESH_COMPANIES", "Microsoft")
