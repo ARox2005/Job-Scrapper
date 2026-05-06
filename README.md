@@ -25,6 +25,14 @@ Scrapes job postings from major tech companies and ranks them by relevance to yo
 
 ---
 
+## 🚀 Live Demo
+
+Experience my Job Scrapper instantly via live deployed frontend:
+- **Job Scrapper**: [Job Scrapper Live App](https://job-scrapper-eight.vercel.app/)
+
+---
+
+
 ## 📑 Table of Contents
 
 - [Tech Stack](#-tech-stack)
